@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú - Specialty Coffee</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        body { background-color: #F3F4F6; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen relative text-gray-900">
+    <div class="max-w-[1400px] mx-auto bg-white min-h-screen shadow-2xl relative">
+
+        <header class="bg-white/95 backdrop-blur-md px-5 py-4 sticky top-0 z-50 flex justify-between items-center border-b border-gray-100 shadow-sm">
+            <h1 id="store-name" class="font-black text-2xl md:text-3xl tracking-tighter uppercase text-[#92400E]">EL CAFÉ.</h1>
+            <button onclick="toggleCart()" class="relative p-1 active:scale-95 transition-transform hover:opacity-70">
+                <i class="fa-solid fa-mug-hot text-2xl md:text-3xl text-[#92400E]"></i>
+                <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-[11px] md:text-xs font-bold h-5 w-5 md:h-6 md:w-6 flex items-center justify-center rounded-full border-2 border-white transition-all duration-300 shadow-sm">0</span>
+            </button>
+        </header>
+
+        <section class="relative w-full h-[30vh] md:h-[40vh] bg-[#3E2723] overflow-hidden flex items-end p-6 md:p-12">
+            <img src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=1600&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover opacity-50" alt="Coffee Shop">
+            <div class="relative z-10 w-full">
+                <span class="bg-[#D97706] text-white px-3 py-1 font-black text-xs md:text-sm uppercase tracking-widest mb-3 md:mb-4 inline-block rounded-sm">Specialty Coffee</span>
+                <h2 class="text-white font-black text-4xl md:text-6xl leading-none mb-2 shadow-sm">EL MEJOR<br>SABOR</h2>
+                <p class="text-gray-200 text-sm md:text-base font-medium max-w-md">Acompaña tu día con nuestra selección de origen y pastelería.</p>
+            </div>
+        </section>
+
+        <nav id="category-nav" class="flex overflow-x-auto gap-3 md:gap-4 px-5 md:px-10 py-5 hide-scrollbar border-b border-gray-100 bg-white sticky top-[68px] md:top-[76px] z-40 shadow-sm"></nav>
+
+        <main class="p-4 md:p-10 bg-[#FFFBF7] pb-28 min-h-screen">
+            <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-8">
+                <div class="col-span-full flex flex-col items-center justify-center py-32 text-gray-400">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-[#92400E]"></i>
+                    <p class="text-base font-bold uppercase tracking-widest">Cargando menú...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="cart-modal" class="hidden fixed inset-0 bg-black/60 z-[1001] flex items-end md:items-center justify-center transition-opacity backdrop-blur-sm p-0 md:p-6">
+        <div class="bg-white w-full md:max-w-xl h-[85vh] md:h-[80vh] rounded-t-3xl md:rounded-3xl flex flex-col overflow-hidden shadow-2xl relative animate-slide-up">
+            <div class="px-6 py-5 flex justify-between items-center border-b border-gray-100 bg-white">
+                <h2 class="text-xl md:text-2xl font-black text-[#92400E]">Tu Orden</h2>
+                <button onclick="toggleCart()" class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 active:scale-95 transition-transform text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="cart-items" class="flex-grow p-5 md:p-8 overflow-y-auto space-y-4 md:space-y-6 bg-gray-50"></div>
+            <div class="p-6 md:p-8 bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-gray-500 font-semibold uppercase text-sm md:text-base">Total Estimado:</span>
+                    <span id="cart-total" class="text-3xl md:text-4xl font-black text-black">$0</span>
+                </div>
+                <button onclick="sendToWhatsApp()" class="w-full bg-[#25D366] text-white py-4 md:py-5 rounded-2xl font-black text-lg md:text-xl flex justify-center items-center gap-3 shadow-lg shadow-green-500/20 active:scale-95 transition-all">
+                    <i class="fa-brands fa-whatsapp text-2xl md:text-3xl"></i> Enviar Pedido
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WHATSAPP_NUMBER = '573114957971';
+        // REEMPLAZA EL GID ABAJO POR EL GID DE LA PESTAÑA DEL CAFÉ
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTKubbkA5X4nCf12-gMrjRmlTagA9m11VdXuLO_DYB958eGMdGIQT2NWVOuLSUVa_gxtvLqyPdO76BU/pub?gid=AQUI_VA_EL_GID_DEL_CAFE&single=true&output=csv';
+
+        let allProducts = [], cart = [], currentCategory = 'Ver Todo';
+
+        function loadProducts() {
+            Papa.parse(CSV_URL, {
+                download: true, header: true, skipEmptyLines: true,
+                complete: function(results) {
+                    allProducts = results.data.map(row => {
+                        const keys = Object.keys(row);
+                        const getVal = (s) => { const f = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === s); return f ? row[f] : ''; };
+                        const n = getVal('nombre'); if (!n) return null;
+                        const p = parseFloat(getVal('precio').toString().replace(/[^0-9]/g, '')) || 0;
+                        return { nombre: n, descripcion: getVal('descripcion') || '', precio: p, imagen: getVal('imagen') || 'https://placehold.co/800x800/EEEEEE/999999?text=Sin+Imagen', categoria: getVal('categoria') || 'General' };
+                    }).filter(p => p !== null);
+                    if (allProducts.length > 0) initApp(); else showError("Catálogo vacío.");
+                },
+                error: function(err) { showError("Error conectando con el catálogo."); }
+            });
+        }
+
+        function showError(m) { document.getElementById('product-grid').innerHTML = `<div class="col-span-full text-center text-red-500 py-20"><i class="fa-solid fa-triangle-exclamation text-4xl mb-3"></i><p class="font-bold text-lg">${m}</p></div>`; }
+        function initApp() { updateCategoryNav(); renderProducts(allProducts); }
+
+        function updateCategoryNav() {
+            const categories = ['Ver Todo', ...new Set(allProducts.map(p => p.categoria))];
+            document.getElementById('category-nav').innerHTML = categories.map(cat => {
+                const isActive = cat === currentCategory;
+                const activeClasses = isActive ? "bg-[#92400E] text-white border-[#92400E]" : "bg-white text-gray-600 border-gray-200 hover:bg-[#FFFBF7]";
+                return `<button onclick="filterCategory('${cat}')" class="px-6 md:px-8 py-2 md:py-3 rounded-full text-sm md:text-base font-bold whitespace-nowrap transition-colors border shadow-sm ${activeClasses}">${cat}</button>`;
+            }).join('');
+        }
+
+        function filterCategory(cat) { currentCategory = cat; renderProducts(cat === 'Ver Todo' ? allProducts : allProducts.filter(p => p.categoria === cat)); updateCategoryNav(); }
+
+        function renderProducts(productsToRender) {
+            const grid = document.getElementById('product-grid');
+            if (productsToRender.length === 0) return grid.innerHTML = `<p class="col-span-full text-center text-gray-400 py-20 font-bold text-lg">No hay productos aquí.</p>`;
+            grid.innerHTML = productsToRender.map((p) => {
+                const originalIndex = allProducts.findIndex(item => item.nombre === p.nombre);
+                return `
+                <div class="bg-white rounded-[1.2rem] md:rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-xl transition-shadow border border-gray-100 flex flex-col relative group">
+                    <div class="relative aspect-square bg-[#FFFBF7] w-full overflow-hidden p-3 md:p-4">
+                        <img src="${p.imagen}" class="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105" loading="lazy">
+                        <button onclick="addToCart(${originalIndex})" class="absolute bottom-3 right-3 md:bottom-4 md:right-4 w-10 h-10 md:w-12 md:h-12 bg-[#92400E] text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform hover:bg-[#78350F] z-20"><i class="fa-solid fa-plus font-bold md:text-xl"></i></button>
+                    </div>
+                    <div class="p-4 md:p-5 flex-grow flex flex-col justify-between bg-white z-10">
+                        <div><p class="text-[10px] md:text-xs text-[#D97706] uppercase tracking-widest font-black mb-1">${p.categoria}</p><h3 class="font-bold text-sm md:text-base text-gray-900 leading-snug line-clamp-2">${p.nombre}</h3></div>
+                        <div class="mt-3"><span class="text-[#92400E] font-black text-base md:text-xl">$${p.precio.toLocaleString()}</span></div>
+                    </div>
+                </div>`
+            }).join('');
+        }
+
+        function addToCart(index) {
+            const product = allProducts[index]; const itemInCart = cart.find(i => i.nombre === product.nombre);
+            if (itemInCart) itemInCart.qty++; else cart.push({ ...product, qty: 1 });
+            updateCartUI();
+            const cartIcon = document.getElementById('cart-count'); cartIcon.classList.add('scale-150', 'bg-[#D97706]');
+            setTimeout(() => cartIcon.classList.remove('scale-150', 'bg-[#D97706]'), 250);
+        }
+
+        function updateCartUI() {
+            document.getElementById('cart-count').innerText = cart.reduce((acc, item) => acc + item.qty, 0);
+            const itemsContainer = document.getElementById('cart-items'); let total = 0;
+            if(cart.length === 0) {
+                itemsContainer.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-gray-400 py-20"><div class="w-24 h-24 bg-[#FFFBF7] rounded-full flex items-center justify-center mb-6"><i class="fa-solid fa-mug-hot text-4xl opacity-50"></i></div><p class="font-bold text-lg">No has ordenado nada aún</p></div>`;
+            } else {
+                itemsContainer.innerHTML = cart.map((item, i) => { total += item.precio * item.qty;
+                    return `<div class="bg-white p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm border border-gray-50 flex items-center gap-4 relative"><img src="${item.imagen}" class="w-20 h-20 md:w-24 md:h-24 object-contain rounded-xl md:rounded-2xl bg-[#FFFBF7] shadow-sm p-1 md:p-2"><div class="flex-grow"><p class="font-bold text-sm md:text-base leading-tight pr-8">${item.nombre}</p><p class="text-gray-500 text-xs md:text-sm mt-1 font-semibold">$${item.precio.toLocaleString()} c/u</p><div class="inline-flex items-center mt-3 bg-gray-100 rounded-lg px-2 py-1 md:px-3 md:py-1.5"><span class="text-xs md:text-sm font-black text-black px-2">Cant: ${item.qty}</span></div></div><button onclick="removeFromCart(${i})" class="absolute top-4 right-4 md:top-6 md:right-6 w-8 h-8 md:w-10 md:h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-100 active:scale-90 transition-transform"><i class="fa-solid fa-trash-can text-xs md:text-sm"></i></button></div>`;
+                }).join('');
+            }
+            document.getElementById('cart-total').innerText = `$${total.toLocaleString()}`;
+        }
+
+        function removeFromCart(i) { cart.splice(i, 1); updateCartUI(); }
+        function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); updateCartUI(); }
+        function sendToWhatsApp() {
+            if (cart.length === 0) return;
+            let msg = `☕ *NUEVO PEDIDO - CAFÉ*%0A-----------------------------------%0A`;
+            let t = 0; cart.forEach(i => { msg += `• ${i.qty}x ${i.nombre} - $${(i.precio * i.qty).toLocaleString()}%0A`; t += i.precio * i.qty; });
+            msg += `-----------------------------------%0A💰 *TOTAL ORDEN: $${t.toLocaleString()}*%0A-----------------------------------%0A_Enviado desde el catálogo web_`;
+            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+        }
+        loadProducts();
+    </script>
+</body>
+</html>
